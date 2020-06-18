@@ -1,0 +1,13 @@
+fileFormatVersion: 2
+guid: ea1e04fb1d561ec4689da4e69071382b
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - outlineScreenShader: {fileID: 4800000, guid: 38709e13bbee7ef42ad1f5f61a1e369d,
+      type: 3}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

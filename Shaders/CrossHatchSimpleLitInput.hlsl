@@ -1,0 +1,45 @@
+#ifndef M8_UNIVERSAL_CROSSHATCH_SIMPLE_LIT_INPUT_INCLUDED
+#define M8_UNIVERSAL_CROSSHATCH_SIMPLE_LIT_INPUT_INCLUDED
+
+#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/SurfaceInput.hlsl"
+
+CBUFFER_START(UnityPerMaterial)
+float4 _BaseMap_ST;
+half4 _BaseColor;
+half4 _SpecColor;
+half4 _EmissionColor;
+half _Cutoff;
+
+#if _CROSSHATCH_UV_TRIPLANAR
+float _CrossHatchMap_TriPlanar_Scale;
+#else
+float4 _CrossHatchMap_ST;
+#endif
+
+half3 _CrossHatchColor;
+CBUFFER_END
+
+TEXTURE2D(_SpecGlossMap);       SAMPLER(sampler_SpecGlossMap);
+
+TEXTURE2D(_CrossHatchMap);      SAMPLER(sampler_CrossHatchMap);
+
+half4 SampleSpecularSmoothness(half2 uv, half alpha, half4 specColor, TEXTURE2D_PARAM(specMap, sampler_specMap))
+{
+    half4 specularSmoothness = half4(0.0h, 0.0h, 0.0h, 1.0h);
+#ifdef _SPECGLOSSMAP
+    specularSmoothness = SAMPLE_TEXTURE2D(specMap, sampler_specMap, uv) * specColor;
+#elif defined(_SPECULAR_COLOR)
+    specularSmoothness = specColor;
+#endif
+
+#ifdef _GLOSSINESS_FROM_BASE_ALPHA
+    specularSmoothness.a = exp2(10 * alpha + 1);
+#else
+    specularSmoothness.a = exp2(10 * specularSmoothness.a + 1);
+#endif
+
+    return specularSmoothness;
+}
+
+#endif
