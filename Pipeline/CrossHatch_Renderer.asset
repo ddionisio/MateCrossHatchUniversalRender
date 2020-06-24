@@ -28,10 +28,13 @@ MonoBehaviour:
   m_Active: 1
   outlineScreenShader: {fileID: 4800000, guid: 38709e13bbee7ef42ad1f5f61a1e369d, type: 3}
   edgeColor: {r: 0, g: 0, b: 0, a: 1}
-  thickness: 1
+  thickness: 2
   useDepth: 1
   minDepthThreshold: 0
   maxDepthThreshold: 1
+  useCameraDepthThreshold: 0
+  cameraDepthNormalThreshold: 0.5
+  cameraDepthNormalThresholdScale: 7
   useNormals: 1
   minNormalsThreshold: 0
   maxNormalsThreshold: 1

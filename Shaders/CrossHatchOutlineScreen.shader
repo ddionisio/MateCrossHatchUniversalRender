@@ -8,7 +8,7 @@
         {
             HLSLPROGRAM
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/SurfaceInput.hlsl"
-            #include "CrossHatchDepthNormal.hlsl"
+            #include "Library/CrossHatchDepthNormal.hlsl"
 
             #pragma shader_feature_local USE_DEPTH
             #pragma shader_feature_local USE_NORMALS

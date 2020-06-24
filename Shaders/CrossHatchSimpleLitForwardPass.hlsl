@@ -1,7 +1,7 @@
 #ifndef M8_UNIVERSAL_CROSSHATCH_SIMPLE_LIT_PASS_INCLUDED
 #define M8_UNIVERSAL_CROSSHATCH_SIMPLE_LIT_PASS_INCLUDED
 
-#include "CrossHatchLighting.hlsl"
+#include "Library/CrossHatchLighting.hlsl"
 
 struct Attributes
 {
@@ -10,10 +10,6 @@ struct Attributes
     float4 tangentOS     : TANGENT;
     float2 texcoord      : TEXCOORD0;
     float2 lightmapUV    : TEXCOORD1;
-
-#ifdef _CROSSHATCH_UV
-    float2 crosshatchUV    : TEXCOORD2;
-#endif
 
     UNITY_VERTEX_INPUT_INSTANCE_ID
 };
@@ -105,17 +101,12 @@ Varyings CrossHatchLitPassVertexSimple(Attributes input)
     output.positionCS = vertexInput.positionCS;
 
     //Cross-Hatch
-    float2 crossHatchTexCoord;
-
 #if !defined(_CROSSHATCH_UV_TRIPLANAR)
-    #ifdef _CROSSHATCH_UV
-        crossHatchTexCoord = input.crosshatchUV;
-    #else
-        crossHatchTexCoord = input.texcoord;
-    #endif
+    float2 crossHatchTexCoord = input.texcoord;
 
     output.uvCrossHatch = TRANSFORM_TEX(crossHatchTexCoord, _CrossHatchMap);
 #endif
+    //
 
 #ifdef _NORMALMAP
     output.normal = half4(normalInput.normalWS, viewDirWS.x);

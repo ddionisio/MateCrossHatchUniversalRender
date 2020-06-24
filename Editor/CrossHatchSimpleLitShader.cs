@@ -47,7 +47,6 @@ namespace M8.CrossHatch.Universal.ShaderGUI {
 
         public enum UVSource {
             TexCoord, //use input.texcoord
-            CrossHatch, //use input.crosshatchUV
             TriPlanar //generate crosshatch UV
         }
 
@@ -106,15 +105,9 @@ namespace M8.CrossHatch.Universal.ShaderGUI {
             var uvSource = (UVSource)material.GetFloat("_CrossHatchUVMode");
             switch(uvSource) {
                 case UVSource.TexCoord:
-                    CoreUtils.SetKeyword(material, "_CROSSHATCH_UV", false);
-                    CoreUtils.SetKeyword(material, "_CROSSHATCH_UV_TRIPLANAR", false);
-                    break;
-                case UVSource.CrossHatch:
-                    CoreUtils.SetKeyword(material, "_CROSSHATCH_UV", true);
                     CoreUtils.SetKeyword(material, "_CROSSHATCH_UV_TRIPLANAR", false);
                     break;
                 case UVSource.TriPlanar:
-                    CoreUtils.SetKeyword(material, "_CROSSHATCH_UV", false);
                     CoreUtils.SetKeyword(material, "_CROSSHATCH_UV_TRIPLANAR", true);
                     break;
             }
@@ -239,7 +232,6 @@ namespace M8.CrossHatch.Universal.ShaderGUI {
 
                 switch(uvSource) {
                     case UVSource.TexCoord:
-                    case UVSource.CrossHatch:
                         DrawTileOffset(materialEditor, mProperties.crossHatchMap);
                         break;
 
