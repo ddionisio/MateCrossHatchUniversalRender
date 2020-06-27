@@ -1,4 +1,4 @@
-﻿Shader "Hidden/M8/Universal Render Pipeline/CrossHatch/Outline Screen"
+﻿Shader "Hidden/M8/Universal Render Pipeline/CrossHatch/Outline Sobel Screen"
 {
     SubShader
     {
@@ -17,10 +17,6 @@
             uniform half4 _EdgeColor;
             uniform half _DepthThresholdMin, _DepthThresholdMax;
             uniform half _NormalThresholdMin, _NormalThresholdMax;
-
-            uniform float _FadeIntensity;
-            uniform float _FadeOpacityMax;
-            uniform float _FadeExponentialDensity;
 
             float4 _CameraColorTexture_TexelSize;
 
@@ -49,18 +45,31 @@
                 float2 uv3 = uv + float2(left, bottom);
 
 #ifdef USE_DEPTH
-                float d0 = SampleDepth(TEXTURE2D_ARGS(_CameraDepthTexture, sampler_CameraDepthTexture), uv0);
-                float d1 = SampleDepth(TEXTURE2D_ARGS(_CameraDepthTexture, sampler_CameraDepthTexture), uv1);
-                float d2 = SampleDepth(TEXTURE2D_ARGS(_CameraDepthTexture, sampler_CameraDepthTexture), uv2);
-                float d3 = SampleDepth(TEXTURE2D_ARGS(_CameraDepthTexture, sampler_CameraDepthTexture), uv3);
+                float hr = 0;
+                float vt = 0;
 
-                float d = length(float2(d1 - d0, d3 - d2));
+                hr += SampleDepth(TEXTURE2D_ARGS(_CameraDepthTexture, sampler_CameraDepthTexture), uv + float2(left, top));
+                hr += SampleDepth(TEXTURE2D_ARGS(_CameraDepthTexture, sampler_CameraDepthTexture), uv + float2(right, top)) * -1.0;
+                hr += SampleDepth(TEXTURE2D_ARGS(_CameraDepthTexture, sampler_CameraDepthTexture), uv + float2(left, 0.0)) * 2.0;
+                hr += SampleDepth(TEXTURE2D_ARGS(_CameraDepthTexture, sampler_CameraDepthTexture), uv + float2(right, 0.0)) * -2.0;
+                hr += SampleDepth(TEXTURE2D_ARGS(_CameraDepthTexture, sampler_CameraDepthTexture), uv + float2(left, bottom));
+                hr += SampleDepth(TEXTURE2D_ARGS(_CameraDepthTexture, sampler_CameraDepthTexture), uv + float2(right, bottom)) * -1.0;
+
+                vt += SampleDepth(TEXTURE2D_ARGS(_CameraDepthTexture, sampler_CameraDepthTexture), uv + float2(left, top));
+                vt += SampleDepth(TEXTURE2D_ARGS(_CameraDepthTexture, sampler_CameraDepthTexture), uv + float2(0.0, top)) * 2.0;
+                vt += SampleDepth(TEXTURE2D_ARGS(_CameraDepthTexture, sampler_CameraDepthTexture), uv + float2(right, top));
+                vt += SampleDepth(TEXTURE2D_ARGS(_CameraDepthTexture, sampler_CameraDepthTexture), uv + float2(left, bottom)) * -1.0;
+                vt += SampleDepth(TEXTURE2D_ARGS(_CameraDepthTexture, sampler_CameraDepthTexture), uv + float2(0.0, bottom)) * -2.0;
+                vt += SampleDepth(TEXTURE2D_ARGS(_CameraDepthTexture, sampler_CameraDepthTexture), uv + float2(right, bottom)) * -1.0;
+
+                float d = abs(hr) + abs(vt); //sqrt(hr * hr + vt * vt);
                 d = smoothstep(_DepthThresholdMin, _DepthThresholdMax, d);
 #else
                 float d = 0;
 #endif
 
 #ifdef USE_NORMALS
+                //Use Robert Cross
                 float3 n0 = SampleNormal(TEXTURE2D_ARGS(_CameraDepthNormalsTexture, sampler_CameraDepthNormalsTexture), uv0);
                 float3 n1 = SampleNormal(TEXTURE2D_ARGS(_CameraDepthNormalsTexture, sampler_CameraDepthNormalsTexture), uv1);
                 float3 n2 = SampleNormal(TEXTURE2D_ARGS(_CameraDepthNormalsTexture, sampler_CameraDepthNormalsTexture), uv2);
@@ -75,19 +84,6 @@
 #endif
 
                 float edge = max(d, n);
-
-                /*
-                uniform float _FadeIntensity;
-                uniform float _FadeOpacityMax;
-                uniform float _FadeExponentialDensity;
-                */
-                float _d = SampleDepth(TEXTURE2D_ARGS(_CameraDepthTexture, sampler_CameraDepthTexture), uv);
-                _d = clamp(_d * (_ProjectionParams.z / _FadeOpacityMax), 0, 1);
-
-                _d = 1.0 / exp((1 - _d) * _FadeExponentialDensity);
-                _d *= _FadeIntensity;
-
-                _EdgeColor.a *= 1.0f - _d;// min(_d * _FadeIntensity, _FadeOpacityMax);
 
                 float4 output;
                 output.rgb = lerp(original.rgb, _EdgeColor.rgb, edge * _EdgeColor.a);

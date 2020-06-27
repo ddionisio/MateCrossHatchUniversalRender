@@ -70,16 +70,28 @@ namespace M8.CrossHatch.Universal.RenderFeatures {
         public float minNormalsThreshold = 0f;
         public float maxNormalsThreshold = 1f;
 
+        [Header("Fade")]
+        public float fadeIntensity = 1f;
+        public float fadeOpacityMax = 1f;
+        public float fadeExponentialDensity = 1f;
+
         private Material mMat;
         private OutlinePass mOutlinePass;
         private RenderTargetHandle mOutlineTexture;
-
+        
         private int mEdgeColorID = Shader.PropertyToID("_EdgeColor");
         private int mThicknessID = Shader.PropertyToID("_Thickness");
         private int mDepthThresholdMin = Shader.PropertyToID("_DepthThresholdMin");
         private int mDepthThresholdMax = Shader.PropertyToID("_DepthThresholdMax");
         private int mNormalThresholdMin = Shader.PropertyToID("_NormalThresholdMin");
         private int mNormalThresholdMax = Shader.PropertyToID("_NormalThresholdMax");
+
+        /*uniform float _FadeIntensity;
+            uniform float _FadeOpacityMax;
+            uniform float _FadeExponentialDensity;*/
+        private int mFadeIntensity = Shader.PropertyToID("_FadeIntensity");
+        private int mFadeOpacityMax = Shader.PropertyToID("_FadeOpacityMax");
+        private int mFadeExponentialDensity = Shader.PropertyToID("_FadeExponentialDensity");
 
         public override void Create() {
             if(!outlineScreenShader) {
@@ -111,6 +123,11 @@ namespace M8.CrossHatch.Universal.RenderFeatures {
         const string normalsKeyword = "USE_NORMALS";
 
         private void InitMaterial() {
+            if(mMat && mMat.shader != outlineScreenShader) {
+                DestroyImmediate(mMat);
+                mMat = null;
+            }
+
             if(!mMat)
                 mMat = new Material(outlineScreenShader);
 
@@ -140,6 +157,11 @@ namespace M8.CrossHatch.Universal.RenderFeatures {
 
             mMat.SetFloat(mNormalThresholdMin, minNormalsThreshold);
             mMat.SetFloat(mNormalThresholdMax, maxNormalsThreshold);
+
+            mMat.SetFloat(mFadeIntensity, fadeIntensity);
+            mMat.SetFloat(mFadeOpacityMax, fadeOpacityMax);
+            mMat.SetFloat(mFadeExponentialDensity, fadeExponentialDensity);
         }
     }
 }
+ 
