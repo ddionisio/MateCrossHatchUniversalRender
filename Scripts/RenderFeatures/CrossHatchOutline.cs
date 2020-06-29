@@ -61,19 +61,20 @@ namespace M8.CrossHatch.Universal.RenderFeatures {
         [Header("Depth")]
         public bool useDepth = true;
         public float minDepthThreshold = 0f;
-        public float maxDepthThreshold = 1f;
+        public float maxDepthThreshold = 2f;
 
         const float depthThresholdScale = 1e-3f;
 
         [Header("Normals")]
         public bool useNormals = false;
         public float minNormalsThreshold = 0f;
-        public float maxNormalsThreshold = 1f;
+        public float maxNormalsThreshold = 2f;
 
         [Header("Fade")]
-        public float fadeIntensity = 1f;
-        public float fadeOpacityMax = 1f;
-        public float fadeExponentialDensity = 1f;
+        public bool useFade = false;
+        public float fadeDistance = 50f;
+        public bool fadeUseExponential = true;
+        public float fadeExponentialDensity = 10f;
 
         private Material mMat;
         private OutlinePass mOutlinePass;
@@ -86,11 +87,7 @@ namespace M8.CrossHatch.Universal.RenderFeatures {
         private int mNormalThresholdMin = Shader.PropertyToID("_NormalThresholdMin");
         private int mNormalThresholdMax = Shader.PropertyToID("_NormalThresholdMax");
 
-        /*uniform float _FadeIntensity;
-            uniform float _FadeOpacityMax;
-            uniform float _FadeExponentialDensity;*/
-        private int mFadeIntensity = Shader.PropertyToID("_FadeIntensity");
-        private int mFadeOpacityMax = Shader.PropertyToID("_FadeOpacityMax");
+        private int mFadeDistance = Shader.PropertyToID("_FadeDistance");
         private int mFadeExponentialDensity = Shader.PropertyToID("_FadeExponentialDensity");
 
         public override void Create() {
@@ -102,7 +99,7 @@ namespace M8.CrossHatch.Universal.RenderFeatures {
             InitMaterial();
 
             mOutlinePass = new OutlinePass(mMat);
-            mOutlinePass.renderPassEvent = RenderPassEvent.AfterRenderingTransparents;//RenderPassEvent.AfterRenderingTransparents;
+            mOutlinePass.renderPassEvent = RenderPassEvent.AfterRenderingTransparents;
 
             mOutlineTexture.Init("_OutlineTexture");
         }
@@ -121,6 +118,8 @@ namespace M8.CrossHatch.Universal.RenderFeatures {
 
         const string depthKeyword = "USE_DEPTH";
         const string normalsKeyword = "USE_NORMALS";
+        const string fadeKeyword = "USE_FADE";
+        const string fadeExpKeyword = "USE_FADE_EXP";
 
         private void InitMaterial() {
             if(mMat && mMat.shader != outlineScreenShader) {
@@ -136,15 +135,23 @@ namespace M8.CrossHatch.Universal.RenderFeatures {
                 return;
             }
 
-            
-            if(useDepth)
+
+            if(useDepth) {
                 mMat.EnableKeyword(depthKeyword);
+
+                mMat.SetFloat(mDepthThresholdMin, minDepthThreshold * depthThresholdScale);
+                mMat.SetFloat(mDepthThresholdMax, maxDepthThreshold * depthThresholdScale);
+            }
             else
                 mMat.DisableKeyword(depthKeyword);
 
-            
-            if(useNormals)
+
+            if(useNormals) {
                 mMat.EnableKeyword(normalsKeyword);
+
+                mMat.SetFloat(mNormalThresholdMin, minNormalsThreshold);
+                mMat.SetFloat(mNormalThresholdMax, maxNormalsThreshold);
+            }
             else
                 mMat.DisableKeyword(normalsKeyword);
 
@@ -152,15 +159,22 @@ namespace M8.CrossHatch.Universal.RenderFeatures {
 
             mMat.SetFloat(mThicknessID, thickness);
 
-            mMat.SetFloat(mDepthThresholdMin, minDepthThreshold * depthThresholdScale);
-            mMat.SetFloat(mDepthThresholdMax, maxDepthThreshold * depthThresholdScale);
+            if(useFade) {
+                mMat.EnableKeyword(fadeKeyword);
 
-            mMat.SetFloat(mNormalThresholdMin, minNormalsThreshold);
-            mMat.SetFloat(mNormalThresholdMax, maxNormalsThreshold);
+                mMat.SetFloat(mFadeDistance, fadeDistance);
 
-            mMat.SetFloat(mFadeIntensity, fadeIntensity);
-            mMat.SetFloat(mFadeOpacityMax, fadeOpacityMax);
-            mMat.SetFloat(mFadeExponentialDensity, fadeExponentialDensity);
+                if(fadeUseExponential) {
+                    mMat.EnableKeyword(fadeExpKeyword);
+
+                    mMat.SetFloat(mFadeExponentialDensity, fadeExponentialDensity);
+                }
+                else
+                    mMat.DisableKeyword(fadeExpKeyword);
+
+            }
+            else
+                mMat.DisableKeyword(fadeKeyword);
         }
     }
 }

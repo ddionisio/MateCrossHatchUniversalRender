@@ -12,14 +12,15 @@
 
             #pragma shader_feature_local USE_DEPTH
             #pragma shader_feature_local USE_NORMALS
+            #pragma shader_feature_local USE_FADE
+            #pragma shader_feature_local USE_FADE_EXP
 
             uniform half _Thickness;
             uniform half4 _EdgeColor;
             uniform half _DepthThresholdMin, _DepthThresholdMax;
             uniform half _NormalThresholdMin, _NormalThresholdMax;
 
-            uniform float _FadeIntensity;
-            uniform float _FadeOpacityMax;
+            uniform float _FadeDistance;
             uniform float _FadeExponentialDensity;
 
             float4 _CameraColorTexture_TexelSize;
@@ -54,10 +55,10 @@
                 float d2 = SampleDepth(TEXTURE2D_ARGS(_CameraDepthTexture, sampler_CameraDepthTexture), uv2);
                 float d3 = SampleDepth(TEXTURE2D_ARGS(_CameraDepthTexture, sampler_CameraDepthTexture), uv3);
 
-                float d = length(float2(d1 - d0, d3 - d2));
-                d = smoothstep(_DepthThresholdMin, _DepthThresholdMax, d);
+                float dEdge = length(float2(d1 - d0, d3 - d2));
+                dEdge = smoothstep(_DepthThresholdMin, _DepthThresholdMax, dEdge);
 #else
-                float d = 0;
+                float dEdge = 0;
 #endif
 
 #ifdef USE_NORMALS
@@ -68,29 +69,29 @@
 
                 float3 nd1 = n1 - n0;
                 float3 nd2 = n3 - n2;
-                float n = sqrt(dot(nd1, nd1) + dot(nd2, nd2));
-                n = smoothstep(_NormalThresholdMin, _NormalThresholdMax, n);
+                float nEdge = sqrt(dot(nd1, nd1) + dot(nd2, nd2));
+                nEdge = smoothstep(_NormalThresholdMin, _NormalThresholdMax, nEdge);
 #else
-                float n = 0;
+                float nEdge = 0;
 #endif
 
-                float edge = max(d, n);
+                float edge = max(dEdge, nEdge);
 
-                /*
-                uniform float _FadeIntensity;
-                uniform float _FadeOpacityMax;
-                uniform float _FadeExponentialDensity;
-                */
-                float _d = SampleDepth(TEXTURE2D_ARGS(_CameraDepthTexture, sampler_CameraDepthTexture), uv);
-                _d = clamp(_d * (_ProjectionParams.z / _FadeOpacityMax), 0, 1);
+                float edgeAlpha = _EdgeColor.a;
 
-                _d = 1.0 / exp((1 - _d) * _FadeExponentialDensity);
-                _d *= _FadeIntensity;
+#if USE_FADE
+                float d = SampleDepth(TEXTURE2D_ARGS(_CameraDepthTexture, sampler_CameraDepthTexture), uv);
+                d = clamp(d * (_ProjectionParams.z / _FadeDistance), 0, 1);
 
-                _EdgeColor.a *= 1.0f - _d;// min(_d * _FadeIntensity, _FadeOpacityMax);
+    #if USE_FADE_EXP
+                d = 1.0 / exp((1 - d) * _FadeExponentialDensity);
+    #endif
+
+                edgeAlpha *= 1.0f - d;
+#endif
 
                 float4 output;
-                output.rgb = lerp(original.rgb, _EdgeColor.rgb, edge * _EdgeColor.a);
+                output.rgb = lerp(original.rgb, _EdgeColor.rgb, edge * edgeAlpha);
                 output.a = original.a;
 
                 return output;
