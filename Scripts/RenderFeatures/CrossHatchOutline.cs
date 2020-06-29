@@ -14,9 +14,14 @@ namespace M8.CrossHatch.Universal.RenderFeatures {
 
             private RenderTargetHandle mTempColorTexture;
 
-            public void Setup(RenderTargetIdentifier source, RenderTargetHandle destination) {
+            private bool mApplyClipToView;
+            private int mClipToView = Shader.PropertyToID("_ClipToView");
+
+            public void Setup(RenderTargetIdentifier source, RenderTargetHandle destination, bool applyClipToView) {
                 mSrc = source;
                 mDest = destination;
+
+                mApplyClipToView = applyClipToView;
             }
 
             public OutlinePass(Material outlineMaterial) {
@@ -27,6 +32,11 @@ namespace M8.CrossHatch.Universal.RenderFeatures {
             }
 
             public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData) {
+                if(mApplyClipToView) {
+                    var clipToView = GL.GetGPUProjectionMatrix(renderingData.cameraData.camera.projectionMatrix, true).inverse;
+                    mOutlineMaterial.SetMatrix(mClipToView, clipToView);
+                }
+
                 var cmd = CommandBufferPool.Get(commandBufferName);
 
                 var opaqueDescriptor = renderingData.cameraData.cameraTargetDescriptor;
@@ -63,12 +73,15 @@ namespace M8.CrossHatch.Universal.RenderFeatures {
         public float minDepthThreshold = 0f;
         public float maxDepthThreshold = 2f;
 
-        const float depthThresholdScale = 1e-3f;
-
         [Header("Normals")]
         public bool useNormals = false;
         public float minNormalsThreshold = 0f;
         public float maxNormalsThreshold = 2f;
+
+        [Header("Camera Threshold")]
+        public bool useCameraThreshold = false;
+        [Range(0, 1)] public float depthNormalThreshold = 0.5f;
+        public float depthNormalThresholdScale = 3f;
 
         [Header("Fade")]
         public bool useFade = false;
@@ -86,6 +99,9 @@ namespace M8.CrossHatch.Universal.RenderFeatures {
         private int mDepthThresholdMax = Shader.PropertyToID("_DepthThresholdMax");
         private int mNormalThresholdMin = Shader.PropertyToID("_NormalThresholdMin");
         private int mNormalThresholdMax = Shader.PropertyToID("_NormalThresholdMax");
+
+        private int mDepthNormalThreshold = Shader.PropertyToID("_DepthNormalThreshold");
+        private int mDepthNormalThresholdScale = Shader.PropertyToID("_DepthNormalThresholdScale");
 
         private int mFadeDistance = Shader.PropertyToID("_FadeDistance");
         private int mFadeExponentialDensity = Shader.PropertyToID("_FadeExponentialDensity");
@@ -112,7 +128,7 @@ namespace M8.CrossHatch.Universal.RenderFeatures {
 
             InitMaterial();
 
-            mOutlinePass.Setup(renderer.cameraColorTarget, RenderTargetHandle.CameraTarget);
+            mOutlinePass.Setup(renderer.cameraColorTarget, RenderTargetHandle.CameraTarget, useCameraThreshold);
             renderer.EnqueuePass(mOutlinePass);
         }
 
@@ -120,6 +136,7 @@ namespace M8.CrossHatch.Universal.RenderFeatures {
         const string normalsKeyword = "USE_NORMALS";
         const string fadeKeyword = "USE_FADE";
         const string fadeExpKeyword = "USE_FADE_EXP";
+        const string cameraThresholdKeyword = "USE_CAMERA_THRESHOLD";
 
         private void InitMaterial() {
             if(mMat && mMat.shader != outlineScreenShader) {
@@ -139,8 +156,8 @@ namespace M8.CrossHatch.Universal.RenderFeatures {
             if(useDepth) {
                 mMat.EnableKeyword(depthKeyword);
 
-                mMat.SetFloat(mDepthThresholdMin, minDepthThreshold * depthThresholdScale);
-                mMat.SetFloat(mDepthThresholdMax, maxDepthThreshold * depthThresholdScale);
+                mMat.SetFloat(mDepthThresholdMin, minDepthThreshold);
+                mMat.SetFloat(mDepthThresholdMax, maxDepthThreshold);
             }
             else
                 mMat.DisableKeyword(depthKeyword);
@@ -175,6 +192,15 @@ namespace M8.CrossHatch.Universal.RenderFeatures {
             }
             else
                 mMat.DisableKeyword(fadeKeyword);
+
+            if(useCameraThreshold) {
+                mMat.EnableKeyword(cameraThresholdKeyword);
+
+                mMat.SetFloat(mDepthNormalThreshold, depthNormalThreshold);
+                mMat.SetFloat(mDepthNormalThresholdScale, depthNormalThresholdScale);
+            }
+            else
+                mMat.DisableKeyword(cameraThresholdKeyword);
         }
     }
 }

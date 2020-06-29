@@ -28,15 +28,19 @@ MonoBehaviour:
   m_Active: 1
   outlineScreenShader: {fileID: 4800000, guid: 38709e13bbee7ef42ad1f5f61a1e369d, type: 3}
   edgeColor: {r: 0, g: 0, b: 0, a: 1}
-  thickness: 3
+  thickness: 2
   useDepth: 1
   minDepthThreshold: 0
-  maxDepthThreshold: 3
+  maxDepthThreshold: 0.0003
   useNormals: 1
   minNormalsThreshold: 0
-  maxNormalsThreshold: 3
-  fadeIntensity: 1
-  fadeOpacityMax: 50
+  maxNormalsThreshold: 0.75
+  useCameraThreshold: 0
+  depthNormalThreshold: 0.5
+  depthNormalThresholdScale: 5
+  useFade: 1
+  fadeDistance: 50
+  fadeUseExponential: 1
   fadeExponentialDensity: 10
 --- !u!114 &11400000
 MonoBehaviour:

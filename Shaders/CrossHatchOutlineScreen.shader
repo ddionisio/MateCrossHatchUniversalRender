@@ -14,14 +14,20 @@
             #pragma shader_feature_local USE_NORMALS
             #pragma shader_feature_local USE_FADE
             #pragma shader_feature_local USE_FADE_EXP
+            #pragma shader_feature_local USE_CAMERA_THRESHOLD
 
             uniform half _Thickness;
             uniform half4 _EdgeColor;
             uniform half _DepthThresholdMin, _DepthThresholdMax;
             uniform half _NormalThresholdMin, _NormalThresholdMax;
 
+            uniform float _DepthNormalThreshold;
+            uniform float _DepthNormalThresholdScale;
+
             uniform float _FadeDistance;
             uniform float _FadeExponentialDensity;
+
+            float4x4 _ClipToView;
 
             float4 _CameraColorTexture_TexelSize;
 
@@ -31,8 +37,46 @@
 
             TEXTURE2D(_CameraDepthNormalsTexture); SAMPLER(sampler_CameraDepthNormalsTexture);
 
-            float4 Outline(float2 uv)
+            struct Attributes
             {
+                float4 position : POSITION;
+                float2 uv       : TEXCOORD0;
+            };
+
+            struct Varyings
+            {
+                float2 uv     : TEXCOORD0;
+                float4 vertex : SV_POSITION;
+
+#if USE_CAMERA_THRESHOLD
+                float3 viewSpaceDir : TEXCOORD2;
+#endif
+
+                UNITY_VERTEX_OUTPUT_STEREO
+            };
+
+            Varyings vert(Attributes input)
+            {
+                Varyings output = (Varyings)0;
+                UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(output);
+
+                VertexPositionInputs vertexInput = GetVertexPositionInputs(input.position.xyz);
+                output.vertex = vertexInput.positionCS;
+                output.uv = input.uv;
+
+#if USE_CAMERA_THRESHOLD
+                output.viewSpaceDir = mul(_ClipToView, output.vertex).xyz;
+#endif
+
+                return output;
+            }
+
+            half4 frag(Varyings input) : SV_Target
+            {
+                UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
+
+                float2 uv = input.uv;
+
                 float4 original = SAMPLE_TEXTURE2D(_CameraColorTexture, sampler_CameraColorTexture, uv);
 
                 float offset_positive = +ceil(_Thickness * 0.5);
@@ -49,18 +93,6 @@
                 float2 uv2 = uv + float2(right, top);
                 float2 uv3 = uv + float2(left, bottom);
 
-#ifdef USE_DEPTH
-                float d0 = SampleDepth(TEXTURE2D_ARGS(_CameraDepthTexture, sampler_CameraDepthTexture), uv0);
-                float d1 = SampleDepth(TEXTURE2D_ARGS(_CameraDepthTexture, sampler_CameraDepthTexture), uv1);
-                float d2 = SampleDepth(TEXTURE2D_ARGS(_CameraDepthTexture, sampler_CameraDepthTexture), uv2);
-                float d3 = SampleDepth(TEXTURE2D_ARGS(_CameraDepthTexture, sampler_CameraDepthTexture), uv3);
-
-                float dEdge = length(float2(d1 - d0, d3 - d2));
-                dEdge = smoothstep(_DepthThresholdMin, _DepthThresholdMax, dEdge);
-#else
-                float dEdge = 0;
-#endif
-
 #ifdef USE_NORMALS
                 float3 n0 = SampleNormal(TEXTURE2D_ARGS(_CameraDepthNormalsTexture, sampler_CameraDepthNormalsTexture), uv0);
                 float3 n1 = SampleNormal(TEXTURE2D_ARGS(_CameraDepthNormalsTexture, sampler_CameraDepthNormalsTexture), uv1);
@@ -72,12 +104,40 @@
                 float nEdge = sqrt(dot(nd1, nd1) + dot(nd2, nd2));
                 nEdge = smoothstep(_NormalThresholdMin, _NormalThresholdMax, nEdge);
 #else
+    #ifdef USE_CAMERA_THRESHOLD
+                float3 n0 = SampleNormal(TEXTURE2D_ARGS(_CameraDepthNormalsTexture, sampler_CameraDepthNormalsTexture), uv0);
+    #endif
+
                 float nEdge = 0;
 #endif
 
-                float edge = max(dEdge, nEdge);
+#ifdef USE_DEPTH
+                float d0 = SampleDepth(TEXTURE2D_ARGS(_CameraDepthTexture, sampler_CameraDepthTexture), uv0);
+                float d1 = SampleDepth(TEXTURE2D_ARGS(_CameraDepthTexture, sampler_CameraDepthTexture), uv1);
+                float d2 = SampleDepth(TEXTURE2D_ARGS(_CameraDepthTexture, sampler_CameraDepthTexture), uv2);
+                float d3 = SampleDepth(TEXTURE2D_ARGS(_CameraDepthTexture, sampler_CameraDepthTexture), uv3);
 
-                float edgeAlpha = _EdgeColor.a;
+    #ifdef USE_CAMERA_THRESHOLD
+                float3 viewNormal = n0 * 2 - 1;
+                float NdotV = 1 - dot(viewNormal, -input.viewSpaceDir);
+
+                float normalThreshold01 = saturate((NdotV - _DepthNormalThreshold) / (1 - _DepthNormalThreshold));
+                float normalThreshold = normalThreshold01 * _DepthNormalThresholdScale + 1;
+
+                float depthThreshold = _DepthThresholdMax * d0 * normalThreshold;
+    #else
+                float depthThreshold = _DepthThresholdMax;
+    #endif
+
+                float dEdge = length(float2(d1 - d0, d3 - d2));
+                dEdge = smoothstep(_DepthThresholdMin, depthThreshold, dEdge);
+#else
+                float dEdge = 0;
+#endif
+
+                half edge = max(dEdge, nEdge);
+
+                half edgeAlpha = _EdgeColor.a;
 
 #if USE_FADE
                 float d = SampleDepth(TEXTURE2D_ARGS(_CameraDepthTexture, sampler_CameraDepthTexture), uv);
@@ -87,46 +147,14 @@
                 d = 1.0 / exp((1 - d) * _FadeExponentialDensity);
     #endif
 
-                edgeAlpha *= 1.0f - d;
+                edgeAlpha *= 1.0 - d;
 #endif
 
-                float4 output;
+                half4 output;
                 output.rgb = lerp(original.rgb, _EdgeColor.rgb, edge * edgeAlpha);
                 output.a = original.a;
 
                 return output;
-            }
-
-            struct Attributes
-            {
-                float4 position : POSITION;
-                float2 uv       : TEXCOORD0;
-            };
-
-            struct Varyings
-            {
-                float2 uv     : TEXCOORD0;
-                float4 vertex : SV_POSITION;
-                UNITY_VERTEX_OUTPUT_STEREO
-            };
-
-            Varyings vert(Attributes input)
-            {
-                Varyings output = (Varyings)0;
-                UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(output);
-
-                VertexPositionInputs vertexInput = GetVertexPositionInputs(input.position.xyz);
-                output.vertex = vertexInput.positionCS;
-                output.uv = input.uv;
-
-                return output;
-            }
-
-            half4 frag(Varyings input) : SV_Target
-            {
-                UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
-                float4 c = Outline(input.uv);
-                return c;
             }
 
             #pragma vertex vert
