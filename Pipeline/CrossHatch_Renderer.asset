@@ -31,13 +31,13 @@ MonoBehaviour:
   thickness: 2
   useDepth: 1
   minDepthThreshold: 0
-  maxDepthThreshold: 0.0003
-  useNormals: 1
-  minNormalsThreshold: 0
-  maxNormalsThreshold: 0.75
-  useCameraThreshold: 0
+  maxDepthThreshold: 0.1
+  useDepthCameraThreshold: 1
   depthNormalThreshold: 0.5
   depthNormalThresholdScale: 5
+  useNormals: 1
+  minNormalsThreshold: 0.5
+  maxNormalsThreshold: 1
   useFade: 1
   fadeDistance: 50
   fadeUseExponential: 1

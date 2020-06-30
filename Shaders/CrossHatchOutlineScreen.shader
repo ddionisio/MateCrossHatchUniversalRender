@@ -11,10 +11,12 @@
             #include "Library/CrossHatchDepthNormal.hlsl"
 
             #pragma shader_feature_local USE_DEPTH
+            #pragma shader_feature_local USE_DEPTH_CAMERA_THRESHOLD
+
             #pragma shader_feature_local USE_NORMALS
+
             #pragma shader_feature_local USE_FADE
-            #pragma shader_feature_local USE_FADE_EXP
-            #pragma shader_feature_local USE_CAMERA_THRESHOLD
+            #pragma shader_feature_local USE_FADE_EXP            
 
             uniform half _Thickness;
             uniform half4 _EdgeColor;
@@ -48,8 +50,8 @@
                 float2 uv     : TEXCOORD0;
                 float4 vertex : SV_POSITION;
 
-#if USE_CAMERA_THRESHOLD
-                float3 viewSpaceDir : TEXCOORD2;
+#if USE_DEPTH_CAMERA_THRESHOLD
+                float3 viewSpaceDir : TEXCOORD1;
 #endif
 
                 UNITY_VERTEX_OUTPUT_STEREO
@@ -64,7 +66,7 @@
                 output.vertex = vertexInput.positionCS;
                 output.uv = input.uv;
 
-#if USE_CAMERA_THRESHOLD
+#if USE_DEPTH_CAMERA_THRESHOLD
                 output.viewSpaceDir = mul(_ClipToView, output.vertex).xyz;
 #endif
 
@@ -104,10 +106,6 @@
                 float nEdge = sqrt(dot(nd1, nd1) + dot(nd2, nd2));
                 nEdge = smoothstep(_NormalThresholdMin, _NormalThresholdMax, nEdge);
 #else
-    #ifdef USE_CAMERA_THRESHOLD
-                float3 n0 = SampleNormal(TEXTURE2D_ARGS(_CameraDepthNormalsTexture, sampler_CameraDepthNormalsTexture), uv0);
-    #endif
-
                 float nEdge = 0;
 #endif
 
@@ -117,7 +115,11 @@
                 float d2 = SampleDepth(TEXTURE2D_ARGS(_CameraDepthTexture, sampler_CameraDepthTexture), uv2);
                 float d3 = SampleDepth(TEXTURE2D_ARGS(_CameraDepthTexture, sampler_CameraDepthTexture), uv3);
 
-    #ifdef USE_CAMERA_THRESHOLD
+    #ifdef USE_DEPTH_CAMERA_THRESHOLD
+        #ifndef USE_NORMALS
+                float3 n0 = SampleNormal(TEXTURE2D_ARGS(_CameraDepthNormalsTexture, sampler_CameraDepthNormalsTexture), uv0);
+        #endif
+
                 float3 viewNormal = n0 * 2 - 1;
                 float NdotV = 1 - dot(viewNormal, -input.viewSpaceDir);
 
@@ -137,8 +139,6 @@
 
                 half edge = max(dEdge, nEdge);
 
-                half edgeAlpha = _EdgeColor.a;
-
 #if USE_FADE
                 float d = SampleDepth(TEXTURE2D_ARGS(_CameraDepthTexture, sampler_CameraDepthTexture), uv);
                 d = clamp(d * (_ProjectionParams.z / _FadeDistance), 0, 1);
@@ -147,7 +147,9 @@
                 d = 1.0 / exp((1 - d) * _FadeExponentialDensity);
     #endif
 
-                edgeAlpha *= 1.0 - d;
+                half edgeAlpha = _EdgeColor.a * (1.0 - d);
+#else
+                half edgeAlpha = _EdgeColor.a;
 #endif
 
                 half4 output;
