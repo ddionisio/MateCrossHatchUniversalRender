@@ -17,11 +17,27 @@ namespace M8.CrossHatch.Universal.RenderFeatures {
             private bool mApplyClipToView;
             private int mClipToView = Shader.PropertyToID("_ClipToView");
 
+            private bool mDistortApply;
+            private Vector2 mDistortTexelOffset;
+            private Vector2 mDistortTexelSize;
+            private int mDistortionTexelST = Shader.PropertyToID("_DistortionTexture_ST");
+
             public void Setup(RenderTargetIdentifier source, RenderTargetHandle destination, bool applyClipToView) {
                 mSrc = source;
                 mDest = destination;
 
                 mApplyClipToView = applyClipToView;
+            }
+
+            public void DistortionEnable(Vector2 offset, Vector2 size) {
+                mDistortApply = true;
+
+                mDistortTexelOffset = offset;
+                mDistortTexelSize = size;
+            }
+
+            public void DistortionDisable() {
+                mDistortApply = false;
             }
 
             public OutlinePass(Material outlineMaterial) {
@@ -35,6 +51,12 @@ namespace M8.CrossHatch.Universal.RenderFeatures {
                 if(mApplyClipToView) {
                     var clipToView = GL.GetGPUProjectionMatrix(renderingData.cameraData.camera.projectionMatrix, true).inverse;
                     mOutlineMaterial.SetMatrix(mClipToView, clipToView);
+                }
+
+                if(mDistortApply) {
+                    float resScale = Screen.height / 1080f; //consistency with resolutions
+                    Vector2 texelUV = new Vector2(Screen.width / (mDistortTexelSize.x * resScale), Screen.height / (mDistortTexelSize.y * resScale));
+                    mOutlineMaterial.SetVector(mDistortionTexelST, new Vector4(mDistortTexelOffset.x * resScale, mDistortTexelOffset.y * resScale, texelUV.x, texelUV.y));
                 }
 
                 var cmd = CommandBufferPool.Get(commandBufferName);
@@ -71,18 +93,25 @@ namespace M8.CrossHatch.Universal.RenderFeatures {
         [Header("Depth")]
         public bool useDepth = true;
         public float minDepthThreshold = 0f;
-        public float maxDepthThreshold = 0.1f;
+        public float maxDepthThreshold = 0.05f;
 
         [Header("Depth Camera Threshold")]
         [Tooltip("Increase depth threshold based on the angle of the surface normal relative to camera. Ensure CrossHatchDepthNormals is enabled.")]
         public bool useDepthCameraThreshold = true;
-        [Range(0, 1)] public float depthNormalThreshold = 0.5f;
-        public float depthNormalThresholdScale = 5f;
+        [Range(0, 1)] public float depthNormalThreshold = 0.2f;
+        public float depthNormalThresholdScale = 8f;
 
         [Header("Normals")]
         public bool useNormals = true;
         public float minNormalsThreshold = 0.5f;
-        public float maxNormalsThreshold = 1f;
+        public float maxNormalsThreshold = 1.5f;
+
+        [Header("Distortion")]
+        public bool useDistortion = false;
+        public Texture2D distortionTexture;
+        public Vector2 distortionOffset;
+        public Vector2 distortionScale = Vector2.one;
+        public float distortionStrength = 1f;
 
         [Header("Fade")]
         public bool useFade = true;
@@ -103,6 +132,9 @@ namespace M8.CrossHatch.Universal.RenderFeatures {
 
         private int mDepthNormalThreshold = Shader.PropertyToID("_DepthNormalThreshold");
         private int mDepthNormalThresholdScale = Shader.PropertyToID("_DepthNormalThresholdScale");
+
+        private int mDistortionTexture = Shader.PropertyToID("_DistortionTexture");        
+        private int mDistortionStrength = Shader.PropertyToID("_DistortionStrength");
 
         private int mFadeDistance = Shader.PropertyToID("_FadeDistance");
         private int mFadeExponentialDensity = Shader.PropertyToID("_FadeExponentialDensity");
@@ -130,6 +162,12 @@ namespace M8.CrossHatch.Universal.RenderFeatures {
             InitMaterial();
 
             mOutlinePass.Setup(renderer.cameraColorTarget, RenderTargetHandle.CameraTarget, useDepthCameraThreshold);
+
+            if(useDistortion)
+                mOutlinePass.DistortionEnable(distortionOffset, new Vector2(distortionTexture.width * distortionScale.x, distortionTexture.height * distortionScale.y));
+            else
+                mOutlinePass.DistortionDisable();
+
             renderer.EnqueuePass(mOutlinePass);
         }
 
@@ -138,6 +176,7 @@ namespace M8.CrossHatch.Universal.RenderFeatures {
         const string fadeKeyword = "USE_FADE";
         const string fadeExpKeyword = "USE_FADE_EXP";
         const string depthCameraThresholdKeyword = "USE_DEPTH_CAMERA_THRESHOLD";
+        const string distortionKeyword = "USE_DISTORTION";
 
         private void InitMaterial() {
             if(mMat && mMat.shader != outlineScreenShader) {
@@ -202,7 +241,17 @@ namespace M8.CrossHatch.Universal.RenderFeatures {
             }
             else
                 mMat.DisableKeyword(depthCameraThresholdKeyword);
+
+            if(useDistortion) {
+                mMat.EnableKeyword(distortionKeyword);
+
+                mMat.SetTexture(mDistortionTexture, distortionTexture);
+                mMat.SetFloat(mDistortionStrength, distortionStrength);
+            }
+            else
+                mMat.DisableKeyword(distortionKeyword);
         }
     }
 }
+ 
  

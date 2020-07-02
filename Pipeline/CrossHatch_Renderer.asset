@@ -31,13 +31,18 @@ MonoBehaviour:
   thickness: 2
   useDepth: 1
   minDepthThreshold: 0
-  maxDepthThreshold: 0.1
+  maxDepthThreshold: 0.15
   useDepthCameraThreshold: 1
-  depthNormalThreshold: 0.5
-  depthNormalThresholdScale: 5
+  depthNormalThreshold: 0.3
+  depthNormalThresholdScale: 8
   useNormals: 1
   minNormalsThreshold: 0.5
-  maxNormalsThreshold: 1
+  maxNormalsThreshold: 1.5
+  useDistortion: 1
+  distortionTexture: {fileID: 2800000, guid: 56c063de045ad3e44ba305304951db83, type: 3}
+  distortionOffset: {x: 0, y: 0}
+  distortionScale: {x: 10, y: 10}
+  distortionStrength: 0.003
   useFade: 1
   fadeDistance: 50
   fadeUseExponential: 1

@@ -16,24 +16,42 @@
             #pragma shader_feature_local USE_NORMALS
 
             #pragma shader_feature_local USE_FADE
-            #pragma shader_feature_local USE_FADE_EXP            
+            #pragma shader_feature_local USE_FADE_EXP
+
+            #pragma shader_feature_local USE_DISTORTION
 
             uniform half _Thickness;
             uniform half4 _EdgeColor;
-            uniform half _DepthThresholdMin, _DepthThresholdMax;
-            uniform half _NormalThresholdMin, _NormalThresholdMax;
 
+#ifdef USE_DEPTH
+            uniform half _DepthThresholdMin, _DepthThresholdMax;
+#endif
+
+#ifdef USE_NORMALS
+            uniform half _NormalThresholdMin, _NormalThresholdMax;
+#endif
+
+#if USE_DEPTH_CAMERA_THRESHOLD
             uniform float _DepthNormalThreshold;
             uniform float _DepthNormalThresholdScale;
 
+            float4x4 _ClipToView;
+#endif
+
+#if USE_FADE
             uniform float _FadeDistance;
             uniform float _FadeExponentialDensity;
+#endif
 
-            float4x4 _ClipToView;
+#if USE_DISTORTION
+            uniform float _DistortionStrength;
 
+            TEXTURE2D(_DistortionTexture); SAMPLER(sampler_DistortionTexture);
+            float4 _DistortionTexture_ST;
+#endif
+                        
+            TEXTURE2D(_CameraColorTexture); SAMPLER(sampler_CameraColorTexture);
             float4 _CameraColorTexture_TexelSize;
-
-            TEXTURE2D(_CameraColorTexture); SAMPLER(sampler_CameraColorTexture);            
 
             TEXTURE2D(_CameraDepthTexture); SAMPLER(sampler_CameraDepthTexture);
 
@@ -80,7 +98,7 @@
                 float2 uv = input.uv;
 
                 float4 original = SAMPLE_TEXTURE2D(_CameraColorTexture, sampler_CameraColorTexture, uv);
-
+                                
                 float offset_positive = +ceil(_Thickness * 0.5);
                 float offset_negative = -floor(_Thickness * 0.5);
                 float2 texel_size = 1.0 / float2(_CameraColorTexture_TexelSize.z, _CameraColorTexture_TexelSize.w);
@@ -89,6 +107,13 @@
                 float right = texel_size.x * offset_positive;
                 float top = texel_size.y * offset_negative;
                 float bottom = texel_size.y * offset_positive;
+
+#if USE_DISTORTION
+                float2 distort = SAMPLE_TEXTURE2D(_DistortionTexture, sampler_DistortionTexture, uv * _DistortionTexture_ST.zw + _DistortionTexture_ST.xy).rg;
+                distort = ((distort / 0.5) - 1);
+
+                uv += distort * _DistortionStrength;
+#endif
 
                 float2 uv0 = uv + float2(left, top);
                 float2 uv1 = uv + float2(right, bottom);
@@ -140,7 +165,7 @@
                 half edge = max(dEdge, nEdge);
 
 #if USE_FADE
-                float d = SampleDepth(TEXTURE2D_ARGS(_CameraDepthTexture, sampler_CameraDepthTexture), uv);
+                float d = SampleDepth(TEXTURE2D_ARGS(_CameraDepthTexture, sampler_CameraDepthTexture), input.uv);
                 d = clamp(d * (_ProjectionParams.z / _FadeDistance), 0, 1);
 
     #if USE_FADE_EXP
