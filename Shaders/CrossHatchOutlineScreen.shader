@@ -109,7 +109,7 @@
                 float bottom = texel_size.y * offset_positive;
 
 #if USE_DISTORTION
-                float2 distort = SAMPLE_TEXTURE2D(_DistortionTexture, sampler_DistortionTexture, uv * _DistortionTexture_ST.zw + _DistortionTexture_ST.xy).rg;
+                float2 distort = SAMPLE_TEXTURE2D(_DistortionTexture, sampler_DistortionTexture, TRANSFORM_TEX(uv, _DistortionTexture)).rg;
                 distort = ((distort / 0.5) - 1);
 
                 uv += distort * _DistortionStrength;

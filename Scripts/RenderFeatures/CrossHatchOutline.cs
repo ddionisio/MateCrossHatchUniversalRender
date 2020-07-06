@@ -18,9 +18,9 @@ namespace M8.CrossHatch.Universal.RenderFeatures {
             private int mClipToView = Shader.PropertyToID("_ClipToView");
 
             private bool mDistortApply;
+            private int mDistortionTexturePropID;
             private Vector2 mDistortTexelOffset;
-            private Vector2 mDistortTexelSize;
-            private int mDistortionTexelST = Shader.PropertyToID("_DistortionTexture_ST");
+            private Vector2 mDistortTexelSize;            
 
             public void Setup(RenderTargetIdentifier source, RenderTargetHandle destination, bool applyClipToView) {
                 mSrc = source;
@@ -29,9 +29,10 @@ namespace M8.CrossHatch.Universal.RenderFeatures {
                 mApplyClipToView = applyClipToView;
             }
 
-            public void DistortionEnable(Vector2 offset, Vector2 size) {
+            public void DistortionEnable(int textureID, Vector2 offset, Vector2 size) {
                 mDistortApply = true;
 
+                mDistortionTexturePropID = textureID;
                 mDistortTexelOffset = offset;
                 mDistortTexelSize = size;
             }
@@ -54,9 +55,10 @@ namespace M8.CrossHatch.Universal.RenderFeatures {
                 }
 
                 if(mDistortApply) {
+                    float aspect = (float)Screen.width / Screen.height;
                     float resScale = Screen.height / 1080f; //consistency with resolutions
-                    Vector2 texelUV = new Vector2(Screen.width / (mDistortTexelSize.x * resScale), Screen.height / (mDistortTexelSize.y * resScale));
-                    mOutlineMaterial.SetVector(mDistortionTexelST, new Vector4(mDistortTexelOffset.x * resScale, mDistortTexelOffset.y * resScale, texelUV.x, texelUV.y));
+                    mOutlineMaterial.SetTextureOffset(mDistortionTexturePropID, new Vector2(-mDistortTexelOffset.x * aspect, -mDistortTexelOffset.y));
+                    mOutlineMaterial.SetTextureScale(mDistortionTexturePropID, new Vector2(Screen.width / (mDistortTexelSize.x * resScale), Screen.height / (mDistortTexelSize.y * resScale)));
                 }
 
                 var cmd = CommandBufferPool.Get(commandBufferName);
@@ -164,7 +166,10 @@ namespace M8.CrossHatch.Universal.RenderFeatures {
             mOutlinePass.Setup(renderer.cameraColorTarget, RenderTargetHandle.CameraTarget, useDepthCameraThreshold);
 
             if(useDistortion)
-                mOutlinePass.DistortionEnable(distortionOffset, new Vector2(distortionTexture.width * distortionScale.x, distortionTexture.height * distortionScale.y));
+                mOutlinePass.DistortionEnable(
+                    mDistortionTexture,
+                    new Vector2(distortionOffset.x / distortionScale.x, distortionOffset.y / distortionScale.y), 
+                    new Vector2(distortionTexture.width * distortionScale.x, distortionTexture.height * distortionScale.y));
             else
                 mOutlinePass.DistortionDisable();
 
