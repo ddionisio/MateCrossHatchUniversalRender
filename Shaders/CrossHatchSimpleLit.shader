@@ -75,8 +75,8 @@ Shader "M8/Universal Render Pipeline/CrossHatch/Simple Lit"
             #pragma shader_feature _RECEIVE_SHADOWS_OFF
 
             //Cross-Hatch
-            #pragma shader_feature_local _CROSSHATCH_UV
             #pragma shader_feature_local _CROSSHATCH_UV_TRIPLANAR
+            #pragma shader_feature_local _CROSSHATCH_UV_SCREEN
 
             // -------------------------------------
             // Universal Pipeline keywords

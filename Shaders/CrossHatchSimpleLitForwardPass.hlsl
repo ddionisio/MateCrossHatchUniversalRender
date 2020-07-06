@@ -37,7 +37,9 @@ struct Varyings
 #endif
 
     //Cross-Hatch
-#if !defined(_CROSSHATCH_UV_TRIPLANAR)
+#if _CROSSHATCH_UV_SCREEN
+    float4 uvCrossHatch             : TEXCOORD8;
+#elif !defined(_CROSSHATCH_UV_TRIPLANAR)
     float2 uvCrossHatch             : TEXCOORD8;
 #endif
 
@@ -104,7 +106,11 @@ Varyings CrossHatchLitPassVertexSimple(Attributes input)
 #if !defined(_CROSSHATCH_UV_TRIPLANAR)
     float2 crossHatchTexCoord = input.texcoord;
 
-    output.uvCrossHatch = TRANSFORM_TEX(crossHatchTexCoord, _CrossHatchMap);
+    #if _CROSSHATCH_UV_SCREEN
+        output.uvCrossHatch = ComputeScreenPos(vertexInput.positionCS);
+    #else
+        output.uvCrossHatch = TRANSFORM_TEX(crossHatchTexCoord, _CrossHatchMap);
+    #endif
 #endif
     //
 
@@ -159,6 +165,11 @@ half4 CrossHatchLitPassFragmentSimple(Varyings input) : SV_Target
     half3 uvWeights = TriPlanarWeights(inputData.normalWS);
 
     crossHatch = Tex2DTriPlanar(TEXTURE2D_ARGS(_CrossHatchMap, sampler_CrossHatchMap), inputData.positionWS, uvWeights, _CrossHatchMap_TriPlanar_Scale);
+#elif _CROSSHATCH_UV_SCREEN
+    float aspect = _ScreenParams.x / _ScreenParams.y;
+    float2 cuv = input.uvCrossHatch.xy / input.uvCrossHatch.w;
+    cuv.x *= aspect;
+    crossHatch = SAMPLE_TEXTURE2D(_CrossHatchMap, sampler_CrossHatchMap, TRANSFORM_TEX(cuv, _CrossHatchMap));
 #else
     crossHatch = SAMPLE_TEXTURE2D(_CrossHatchMap, sampler_CrossHatchMap, input.uvCrossHatch);
 #endif

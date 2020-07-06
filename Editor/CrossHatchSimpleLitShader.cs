@@ -47,7 +47,8 @@ namespace M8.CrossHatch.Universal.ShaderGUI {
 
         public enum UVSource {
             TexCoord, //use input.texcoord
-            TriPlanar //generate crosshatch UV
+            TriPlanar, //generate crosshatch UV
+            ScreenSpace, //screen space
         }
 
         public static class StylesExt {
@@ -106,9 +107,15 @@ namespace M8.CrossHatch.Universal.ShaderGUI {
             switch(uvSource) {
                 case UVSource.TexCoord:
                     CoreUtils.SetKeyword(material, "_CROSSHATCH_UV_TRIPLANAR", false);
+                    CoreUtils.SetKeyword(material, "_CROSSHATCH_UV_SCREEN", false);
                     break;
                 case UVSource.TriPlanar:
                     CoreUtils.SetKeyword(material, "_CROSSHATCH_UV_TRIPLANAR", true);
+                    CoreUtils.SetKeyword(material, "_CROSSHATCH_UV_SCREEN", false);
+                    break;
+                case UVSource.ScreenSpace:
+                    CoreUtils.SetKeyword(material, "_CROSSHATCH_UV_TRIPLANAR", false);
+                    CoreUtils.SetKeyword(material, "_CROSSHATCH_UV_SCREEN", true);
                     break;
             }
         }
@@ -232,6 +239,7 @@ namespace M8.CrossHatch.Universal.ShaderGUI {
 
                 switch(uvSource) {
                     case UVSource.TexCoord:
+                    case UVSource.ScreenSpace:
                         DrawTileOffset(materialEditor, mProperties.crossHatchMap);
                         break;
 
