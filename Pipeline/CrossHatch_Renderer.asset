@@ -25,7 +25,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ea1e04fb1d561ec4689da4e69071382b, type: 3}
   m_Name: NewCrossHatchOutline
   m_EditorClassIdentifier: 
-  m_Active: 0
+  m_Active: 1
   outlineScreenShader: {fileID: 4800000, guid: 38709e13bbee7ef42ad1f5f61a1e369d, type: 3}
   edgeColor: {r: 0, g: 0, b: 0, a: 1}
   thickness: 2
@@ -38,12 +38,12 @@ MonoBehaviour:
   useNormals: 1
   minNormalsThreshold: 0.5
   maxNormalsThreshold: 1.5
-  useDistortion: 1
-  distortionTexture: {fileID: 2800000, guid: 56c063de045ad3e44ba305304951db83, type: 3}
+  useDistortion: 0
+  distortionTexture: {fileID: 0}
   distortionOffset: {x: 0, y: 0}
   distortionScale: {x: 8, y: 8}
   distortionStrength: 0.003
-  useFade: 1
+  useFade: 0
   fadeDistance: 50
   fadeUseExponential: 1
   fadeExponentialDensity: 10

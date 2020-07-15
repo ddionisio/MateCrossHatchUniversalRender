@@ -49,6 +49,9 @@ namespace M8.CrossHatch.Universal.RenderFeatures {
             }
 
             public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData) {
+                if(!mOutlineMaterial)
+                    return;
+
                 if(mApplyClipToView) {
                     var clipToView = GL.GetGPUProjectionMatrix(renderingData.cameraData.camera.projectionMatrix, true).inverse;
                     mOutlineMaterial.SetMatrix(mClipToView, clipToView);
@@ -247,7 +250,7 @@ namespace M8.CrossHatch.Universal.RenderFeatures {
             else
                 mMat.DisableKeyword(depthCameraThresholdKeyword);
 
-            if(useDistortion) {
+            if(useDistortion && distortionTexture) {
                 mMat.EnableKeyword(distortionKeyword);
 
                 mMat.SetTexture(mDistortionTexture, distortionTexture);

@@ -4,7 +4,7 @@
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 #include "CrossHatch.hlsl"
 
-half4 CrossHatchUniversalFragmentBlinnPhongSimple(InputData inputData, half3 diffuse, half4 specularGloss, half smoothness, half3 emission, half4 crossHatch, half3 crossHatchColor, half alpha)
+half4 CrossHatchUniversalFragmentBlinnPhongShadeOnly(InputData inputData, half3 diffuse, half4 specularGloss, half smoothness, half3 emission, half4 crossHatch, half3 crossHatchColor, half alpha)
 {
     Light mainLight = GetMainLight(inputData.shadowCoord);
     MixRealtimeAndBakedGI(mainLight, inputData.normalWS, inputData.bakedGI, half4(0, 0, 0, 0));

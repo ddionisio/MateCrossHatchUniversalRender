@@ -174,7 +174,7 @@ half4 CrossHatchLitPassFragmentSimple(Varyings input) : SV_Target
     crossHatch = SAMPLE_TEXTURE2D(_CrossHatchMap, sampler_CrossHatchMap, input.uvCrossHatch);
 #endif
 
-    half4 color = CrossHatchUniversalFragmentBlinnPhongSimple(inputData, diffuse, specular, smoothness, emission, crossHatch, _CrossHatchColor, alpha);
+    half4 color = CrossHatchUniversalFragmentBlinnPhongShadeOnly(inputData, diffuse, specular, smoothness, emission, crossHatch, _CrossHatchColor, alpha);
     color.rgb = MixFog(color.rgb, inputData.fogCoord);
     return color;
 };
